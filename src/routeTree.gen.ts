@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TriageRouteImport } from './routes/triage'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as ResultsRouteImport } from './routes/results'
+import { Route as MethaneRouteImport } from './routes/methane'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TriageRoute = TriageRouteImport.update({
@@ -29,6 +30,11 @@ const ResultsRoute = ResultsRouteImport.update({
   path: '/results',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MethaneRoute = MethaneRouteImport.update({
+  id: '/methane',
+  path: '/methane',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/methane': typeof MethaneRoute
   '/results': typeof ResultsRoute
   '/rules': typeof RulesRoute
   '/triage': typeof TriageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/methane': typeof MethaneRoute
   '/results': typeof ResultsRoute
   '/rules': typeof RulesRoute
   '/triage': typeof TriageRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/methane': typeof MethaneRoute
   '/results': typeof ResultsRoute
   '/rules': typeof RulesRoute
   '/triage': typeof TriageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/results' | '/rules' | '/triage'
+  fullPaths: '/' | '/methane' | '/results' | '/rules' | '/triage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/results' | '/rules' | '/triage'
-  id: '__root__' | '/' | '/results' | '/rules' | '/triage'
+  to: '/' | '/methane' | '/results' | '/rules' | '/triage'
+  id: '__root__' | '/' | '/methane' | '/results' | '/rules' | '/triage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MethaneRoute: typeof MethaneRoute
   ResultsRoute: typeof ResultsRoute
   RulesRoute: typeof RulesRoute
   TriageRoute: typeof TriageRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResultsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/methane': {
+      id: '/methane'
+      path: '/methane'
+      fullPath: '/methane'
+      preLoaderRoute: typeof MethaneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MethaneRoute: MethaneRoute,
   ResultsRoute: ResultsRoute,
   RulesRoute: RulesRoute,
   TriageRoute: TriageRoute,

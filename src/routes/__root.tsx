@@ -9,6 +9,10 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { LiveClock } from "@/components/LiveClock";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -72,11 +76,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "MCI Triage & First Aid Expert System" },
+      { name: "description", content: "Rule-based expert system for Mass Casualty Incident triage and emergency first aid response." },
+      { property: "og:title", content: "MCI Triage & First Aid Expert System" },
+      { property: "og:description", content: "Rule-based expert system for Mass Casualty Incident triage and emergency first aid response." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -113,7 +116,25 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="h-14 border-b border-border/60 glass flex items-center px-3 gap-3 sticky top-0 z-30">
+              <SidebarTrigger />
+              <div className="flex items-center gap-2 text-sm font-semibold tracking-wide">
+                <span className="h-2 w-2 rounded-full bg-triage-red animate-pulse-glow" />
+                EMERGENCY OPERATIONS
+              </div>
+              <div className="ml-auto"><LiveClock /></div>
+            </header>
+            <main className="flex-1 animate-fade-in">
+              <Outlet />
+            </main>
+          </div>
+        </div>
+        <Toaster richColors position="top-right" />
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }

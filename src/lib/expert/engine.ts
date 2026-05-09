@@ -16,6 +16,7 @@ export interface Symptoms {
   respiratoryRate: number;
   radialPulsePresent: boolean;
   capRefillSeconds: number;
+  capRefillUncertain: boolean;
   followsCommands: boolean;
   avpu: AVPU;
   severeBleeding: boolean;
@@ -45,6 +46,7 @@ export const defaultSymptoms = (): Symptoms => ({
   respiratoryRate: 18,
   radialPulsePresent: true,
   capRefillSeconds: 2,
+  capRefillUncertain: false,
   followsCommands: true,
   avpu: "Alert",
   severeBleeding: false,
@@ -75,6 +77,7 @@ export interface InferenceResult {
   recommendations: string[];
   severityScore: number; // 0-100
   notes: string[];
+  control?: "STOP_SCENE_UNSAFE" | "LIMIT_TO_NON_CONTACT_ASSESSMENT";
 }
 
 const SEVERITY: Record<Exclude<TriageColor, null>, number> = {
@@ -92,7 +95,7 @@ function pickMostSevere(colors: (TriageColor)[]): Exclude<TriageColor, null> {
 export function runInference(s: Symptoms): InferenceResult {
   const fired: FiredRule[] = [];
   const reasoning: string[] = [];
-  const recommendations: string[] = [];
+  const supplementalRecommendations: string[] = [];
   const notes: string[] = [];
   const classifications: TriageColor[] = [];
 
@@ -100,35 +103,64 @@ export function runInference(s: Symptoms): InferenceResult {
     const r = RULES.find(x => x.id === id)!;
     fired.push({ id, title: r.title, reason, classification, recommendation });
     reasoning.push(`Rule ${id} (${r.title}) → ${reason}`);
-    if (recommendation) recommendations.push(recommendation);
     if (classification) classifications.push(classification);
   };
 
-  // R32 Scene safety
+  let control: InferenceResult["control"];
+
+  const makeResult = (): InferenceResult => {
+    const classification = pickMostSevere(classifications);
+    if (classifications.filter(Boolean).length > 1) {
+      notes.push(`Rule 28 applied — multiple categories matched, selected ${classification}.`);
+    }
+    const score =
+      classification === "RED" ? 95 :
+      classification === "BLACK" ? 80 :
+      classification === "YELLOW" ? 55 : 20;
+    // Keep recommendations tied to final color, and also keep neutral actions
+    // (e.g., consent/safety/process rules such as Rule 30 refusal recording).
+    const finalRecommendations = Array.from(new Set(
+      [
+        ...fired
+          .filter(f => f.classification === classification || f.classification === null)
+          .map(f => f.recommendation)
+          .filter(Boolean),
+        ...supplementalRecommendations,
+      ]
+    ));
+    return { classification, fired, reasoning, recommendations: finalRecommendations, severityScore: score, notes, control };
+  };
+
+  // R32 Scene safety — if unsafe, short-circuit and return control signal
   if (!s.sceneSafe) {
     fire(32, "Environment reported as unsafe.", null,
       "Do not enter the danger area. Wait for safety support / emergency services.");
     notes.push("⚠ Scene unsafe — withhold approach.");
+    control = "STOP_SCENE_UNSAFE";
+    // Allow METHANE to be prepared without physical assessment
+    if (s.isMCI) fire(33, "Mass casualty incident confirmed.", null, "Prepare METHANE report for command.");
+    return makeResult();
   }
 
   // R30/R31 Consent
   if (s.conscious && s.refusesTreatment) {
     fire(30, "Conscious victim refuses treatment.", null,
       "Do not perform physical treatment. Record refusal if possible.");
+    notes.push("ℹ Victim refusal recorded.");
   } else if (!s.conscious) {
     fire(31, "Victim unconscious — implied consent applies.", null,
       "Continue assessment within responder's training.");
   }
 
-  // R1 walking
-  if (s.canWalk && !s.walkedToWrongArea) {
-    fire(1, "Victim can walk.", "GREEN",
-      "Direct victim to designated safe area.");
-  }
-  // R2 walking but wrong area
-  if (s.canWalk && s.walkedToWrongArea) {
-    fire(2, "Walking but disoriented / wrong area.", "YELLOW",
-      "Perform further assessment.");
+  // R1/R2 walking — specific (wrong area) first, mutually exclusive
+  if (s.canWalk) {
+    if (s.walkedToWrongArea) {
+      fire(2, "Walking but disoriented / wrong area.", "YELLOW",
+        "Perform further assessment.");
+    } else {
+      fire(1, "Victim can walk.", "GREEN",
+        "Direct victim to designated safe area.");
+    }
   }
 
   // Breathing path (when not walking, or to handle worsened state regardless)
@@ -170,11 +202,17 @@ export function runInference(s: Symptoms): InferenceResult {
       } else {
         fire(8, `Adult RR ${s.respiratoryRate} ≤ 30/min — continue to perfusion.`, null, "");
         // Perfusion
-        if (!s.radialPulsePresent || s.capRefillSeconds > 2) {
-          fire(9, `Poor perfusion (radial pulse ${s.radialPulsePresent ? "present" : "absent"}, cap refill ${s.capRefillSeconds}s).`,
+        const capRefillDelayed = !s.capRefillUncertain && s.capRefillSeconds > 2;
+        const capRefillText = s.capRefillUncertain ? "unknown" : `${s.capRefillSeconds}s`;
+        if (s.capRefillUncertain) {
+          notes.push("ℹ Capillary refill marked as uncertain; perfusion judged using radial pulse.");
+          supplementalRecommendations.push("If possible, reassess capillary refill when conditions allow.");
+        }
+        if (!s.radialPulsePresent || capRefillDelayed) {
+          fire(9, `Poor perfusion (radial pulse ${s.radialPulsePresent ? "present" : "absent"}, cap refill ${capRefillText}).`,
             "RED", "Provide circulation support / bleeding control.");
         } else {
-          fire(10, "Adequate perfusion — continue to mental status.", null, "");
+          fire(10, `Adequate perfusion (radial pulse present, cap refill ${capRefillText}) — continue to mental status.`, null, "");
           if (!s.followsCommands) {
             fire(11, "Cannot follow simple commands.", "RED",
               "Immediate monitoring and treatment.");
@@ -191,9 +229,14 @@ export function runInference(s: Symptoms): InferenceResult {
           "Immediate treatment required.");
       } else {
         fire(23, `Pediatric RR ${s.respiratoryRate} within 15–45 — continue to circulation/AVPU.`, null, "");
-        if (!s.radialPulsePresent || s.capRefillSeconds > 2) {
-          fire(9, `Poor perfusion in child.`, "RED",
+        const poorPerfusionPeds = !s.radialPulsePresent || (!s.capRefillUncertain && s.capRefillSeconds > 2);
+        if (poorPerfusionPeds) {
+          fire(9, `Poor perfusion in child (radial pulse ${s.radialPulsePresent ? "present" : "absent"}, cap refill ${s.capRefillUncertain ? "unknown" : `${s.capRefillSeconds}s`}).`, "RED",
             "Provide circulation support / bleeding control.");
+        }
+        if (s.capRefillUncertain) {
+          notes.push("ℹ Pediatric capillary refill marked as uncertain; prioritize pulse and mental status cues.");
+          supplementalRecommendations.push("If possible, reassess capillary refill when conditions allow.");
         }
         if (s.avpu === "Unresponsive" || s.avpu === "Pain") {
           fire(27, `Pediatric AVPU = ${s.avpu}.`, "RED",
@@ -237,22 +280,11 @@ export function runInference(s: Symptoms): InferenceResult {
     fire(21, "Anaphylaxis — severe allergic reaction with airway/swelling.", "RED",
       "Urgent medical attention; epinephrine if available.");
 
-  // R28 Conflict resolution
-  const classification = pickMostSevere(classifications);
-  if (classifications.filter(Boolean).length > 1) {
-    notes.push(`Rule 28 applied — multiple categories matched, selected ${classification}.`);
-  }
-
-  // R33 METHANE
+  // R33 METHANE (non-control path)
   if (s.isMCI) {
     fire(33, "Mass casualty incident confirmed.", null,
       "Prepare METHANE report for command.");
   }
 
-  const score =
-    classification === "RED" ? 95 :
-    classification === "BLACK" ? 80 :
-    classification === "YELLOW" ? 55 : 20;
-
-  return { classification, fired, reasoning, recommendations, severityScore: score, notes };
+  return makeResult();
 }

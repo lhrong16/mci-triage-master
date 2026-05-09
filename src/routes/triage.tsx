@@ -89,9 +89,28 @@ function Triage() {
             <div className="p-3 rounded-lg border border-border bg-card/40">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Capillary refill (seconds)</Label>
-                <span className="font-mono text-xl">{s.capRefillSeconds}s</span>
+                <span className="font-mono text-xl">{s.capRefillUncertain ? "Unknown" : `${s.capRefillSeconds}s`}</span>
               </div>
-              <Slider min={0} max={6} step={1} value={[s.capRefillSeconds]} onValueChange={([v])=>update("capRefillSeconds",v)} className="mt-3"/>
+              <Slider
+                min={0}
+                max={6}
+                step={1}
+                disabled={s.capRefillUncertain}
+                value={[s.capRefillSeconds]}
+                onValueChange={([v])=>update("capRefillSeconds",v)}
+                className="mt-3"
+              />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">Not sure about capillary refill? Mark it unknown.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={s.capRefillUncertain ? "default" : "outline"}
+                  onClick={() => update("capRefillUncertain", !s.capRefillUncertain)}
+                >
+                  I'm not sure
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -164,7 +183,15 @@ function Triage() {
       <div className="flex items-center justify-between">
         <Button variant="outline" disabled={step===0} onClick={()=>setStep(s=>s-1)}><ArrowLeft className="h-4 w-4 mr-1"/> Back</Button>
         {step < steps.length - 1 ? (
-          <Button onClick={()=>setStep(s=>s+1)} className="bg-[var(--gradient-emergency)]">Next <ArrowRight className="h-4 w-4 ml-1"/></Button>
+          <Button onClick={() => {
+            if (!s.sceneSafe) {
+              // If scene is unsafe, short-circuit and run the inference now so the UI
+              // shows the safety rule and recommendations immediately.
+              submit();
+            } else {
+              setStep(s => s + 1);
+            }
+          }} className="bg-[var(--gradient-emergency)]">Next <ArrowRight className="h-4 w-4 ml-1"/></Button>
         ) : (
           <Button onClick={submit} className="bg-[var(--gradient-emergency)] shadow-[var(--shadow-glow-red)]">
             Run Inference Engine <ShieldAlert className="h-4 w-4 ml-2"/>

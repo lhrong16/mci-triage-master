@@ -35,6 +35,7 @@ function Results() {
 
   const { result } = a;
   const cls = result.classification;
+  const control = (result as any).control as undefined | "STOP_SCENE_UNSAFE" | "LIMIT_TO_NON_CONTACT_ASSESSMENT";
 
   return (
     <div className="px-4 md:px-8 py-8 max-w-6xl mx-auto space-y-6">
@@ -50,27 +51,46 @@ function Results() {
       </div>
 
       {/* Verdict */}
-      <Card className={`p-8 ${COLOR_STYLES[cls]} ${cls==="RED" ? "shadow-[var(--shadow-glow-red)]" : ""}`}>
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full grid place-items-center bg-black/15 backdrop-blur">
-            <ShieldAlert className="h-9 w-9"/>
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-widest opacity-80">Final Category</div>
-            <div className="text-5xl font-extrabold tracking-tight">{cls}</div>
-            <div className="opacity-90 font-semibold">
-              {cls==="RED"&&"Immediate — life-threatening"}
-              {cls==="YELLOW"&&"Delayed — serious but stable"}
-              {cls==="GREEN"&&"Minor — walking wounded"}
-              {cls==="BLACK"&&"Expectant — do not prioritize during MCI"}
+      {control === "STOP_SCENE_UNSAFE" ? (
+        <Card className="p-8 border border-triage-red bg-triage-red/10 text-triage-red">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full grid place-items-center bg-black/15 backdrop-blur">
+              <ShieldAlert className="h-9 w-9"/>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-widest opacity-80">Assessment Paused</div>
+              <div className="text-3xl font-extrabold tracking-tight">Scene Unsafe</div>
+              <div className="opacity-90 font-semibold">Do not enter the danger area. Wait for safety support or emergency services.</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-xs uppercase opacity-80">Severity</div>
+              <div className="text-4xl font-extrabold tabular-nums">—</div>
             </div>
           </div>
-          <div className="ml-auto text-right">
-            <div className="text-xs uppercase opacity-80">Severity</div>
-            <div className="text-4xl font-extrabold tabular-nums">{result.severityScore}</div>
+        </Card>
+      ) : (
+        <Card className={`p-8 ${COLOR_STYLES[cls]} ${cls==="RED" ? "shadow-[var(--shadow-glow-red)]" : ""}`}>
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full grid place-items-center bg-black/15 backdrop-blur">
+              <ShieldAlert className="h-9 w-9"/>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-widest opacity-80">Final Category</div>
+              <div className="text-5xl font-extrabold tracking-tight">{cls}</div>
+              <div className="opacity-90 font-semibold">
+                {cls==="RED"&&"Immediate — life-threatening"}
+                {cls==="YELLOW"&&"Delayed — serious but stable"}
+                {cls==="GREEN"&&"Minor — walking wounded"}
+                {cls==="BLACK"&&"Expectant — do not prioritize during MCI"}
+              </div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-xs uppercase opacity-80">Severity</div>
+              <div className="text-4xl font-extrabold tabular-nums">{result.severityScore}</div>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Reasoning trace */}
@@ -111,7 +131,7 @@ function Results() {
             {result.recommendations.map((r, i) => (
               <li key={i} className="flex gap-2 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-triage-green shrink-0 mt-0.5"/>
-                <span>{r}</span>
+                <span className={r === "Do not perform physical treatment. Record refusal if possible." ? "font-bold text-triage-red" : ""}>{r}</span>
               </li>
             ))}
           </ul>

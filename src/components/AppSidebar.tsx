@@ -3,7 +3,7 @@ import { Activity, BookOpen, FileWarning, Home, ShieldAlert, Stethoscope, Databa
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Command Center", url: "/", icon: Home },
+  { title: "Dashboard", url: "/", icon: Home },
   { title: "Triage Assessment", url: "/triage", icon: Stethoscope },
   { title: "Rule Knowledge Base", url: "/rules", icon: BookOpen },
   { title: "METHANE Report", url: "/methane", icon: FileWarning },
@@ -25,8 +25,8 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-bold tracking-wide">MCI EXPERT</div>
-              <div className="text-[10px] uppercase text-muted-foreground tracking-widest">Triage System</div>
+              <div className="text-sm font-bold tracking-wide">TriageMaster</div>
+              <div className="text-[10px] uppercase text-muted-foreground tracking-widest">Triage Expert System</div>
             </div>
           )}
         </div>
@@ -55,7 +55,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <div className="px-3 py-2 text-xs text-muted-foreground space-y-1">
               <div className="flex items-center gap-2"><Activity className="h-3 w-3 text-triage-green"/> {!collapsed && "System online"}</div>
-              <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-triage-red animate-pulse"/> {!collapsed && "Live engine"}</div>
+              <div className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-triage-red animate-pulse"/> {!collapsed && "Live engine"}</div>
             </div>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -47,10 +47,10 @@ function Index() {
             <Button asChild size="lg" className="bg-[var(--gradient-emergency)] shadow-[var(--shadow-glow-red)] hover:opacity-95">
               <Link to="/triage"><Stethoscope className="mr-2 h-5 w-5"/> Start Triage <ArrowRight className="ml-1 h-4 w-4"/></Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg" className="bg-[var(--gradient-emergency)] shadow-[var(--shadow-glow-red)] hover:opacity-95">
               <Link to="/methane"><FileWarning className="mr-2 h-5 w-5"/> METHANE Report</Link>
             </Button>
-            <Button asChild size="lg" variant="ghost">
+            <Button asChild size="lg" className="bg-[var(--gradient-emergency)] shadow-[var(--shadow-glow-red)] hover:opacity-95">
               <Link to="/rules"><BookOpen className="mr-2 h-5 w-5"/> Knowledge Base</Link>
             </Button>
           </div>
@@ -82,7 +82,7 @@ function Index() {
         ))}
       </section>
 
-      <section className="grid md:grid-cols-3 gap-4">
+      <section className="grid md:grid-cols-2 xl:grid-cols-5 gap-4">
         <Card className="glass p-6">
           <ShieldAlert className="h-6 w-6 text-triage-red mb-2"/>
           <h3 className="font-semibold">Forward-Chaining Engine</h3>
@@ -97,6 +97,16 @@ function Index() {
           <FileWarning className="h-6 w-6 text-triage-green mb-2"/>
           <h3 className="font-semibold">METHANE Reporting</h3>
           <p className="text-sm text-muted-foreground mt-1">Generate, copy, print, and export structured incident reports.</p>
+        </Card>
+        <Card className="glass p-6">
+          <BookOpen className="h-6 w-6 text-primary mb-2" />
+          <h3 className="font-semibold">How to Use</h3>
+          <p className="text-sm text-muted-foreground mt-1">Start the assessment, follow the 5 steps, toggle only what you observe, then run the engine on the final step.</p>
+        </Card>
+        <Card className="glass p-6">
+          <AlertTriangle className="h-6 w-6 text-triage-yellow mb-2" />
+          <h3 className="font-semibold">Terms &amp; Conditions</h3>
+          <p className="text-sm text-muted-foreground mt-1">Decision-support only. Please follow local protocols, use clinical judgment, and confirm before acting.</p>
         </Card>
       </section>
     </div>

@@ -51,6 +51,7 @@ function Triage() {
           <Toggle label="Scene is safe" hint="Rule 32 — do not enter unsafe areas." value={s.sceneSafe} onChange={(v:boolean)=>update("sceneSafe",v)} />
           <Toggle label="Victim conscious" value={s.conscious} onChange={(v:boolean)=>update("conscious",v)} />
           <Toggle label="Refuses treatment" hint="Rule 30 — record refusal." value={s.refusesTreatment} onChange={(v:boolean)=>update("refusesTreatment",v)} danger />
+          <Toggle label="Condition changed since last check" hint="Rule 29 — re-run full triage if status changes." value={s.conditionChanged} onChange={(v:boolean)=>update("conditionChanged",v)} />
           <Toggle label="Mass casualty incident" hint="Triggers METHANE (Rule 33)." value={s.isMCI} onChange={(v:boolean)=>update("isMCI",v)} />
         </div>
       ),
@@ -129,6 +130,7 @@ function Triage() {
                 <label key={o} className="flex items-center gap-2"><RadioGroupItem value={o}/> {o}</label>
               ))}
             </RadioGroup>
+            <p className="text-xs text-muted-foreground mt-2">Pediatric note: Voice, Pain, or Unresponsive is treated as Red.</p>
           </div>
         </div>
       ),

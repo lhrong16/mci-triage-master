@@ -81,7 +81,7 @@ function Results() {
                 {cls==="RED"&&"Immediate — life-threatening"}
                 {cls==="YELLOW"&&"Delayed — serious but stable"}
                 {cls==="GREEN"&&"Minor — walking wounded"}
-                {cls==="BLACK"&&"Expectant — do not prioritize during MCI"}
+                {cls==="BLACK"&&"Deceased — not breathing after airway or rescue breaths"}
               </div>
             </div>
             <div className="ml-auto text-right">

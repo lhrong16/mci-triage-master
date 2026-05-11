@@ -7,6 +7,7 @@ export interface Symptoms {
   sceneSafe: boolean;
   conscious: boolean;
   refusesTreatment: boolean;
+  conditionChanged: boolean;
   canWalk: boolean;
   walkedToWrongArea: boolean;
   breathing: boolean;
@@ -37,6 +38,7 @@ export const defaultSymptoms = (): Symptoms => ({
   sceneSafe: true,
   conscious: true,
   refusesTreatment: false,
+  conditionChanged: false,
   canWalk: false,
   walkedToWrongArea: false,
   breathing: true,
@@ -107,6 +109,7 @@ export function runInference(s: Symptoms): InferenceResult {
   };
 
   let control: InferenceResult["control"];
+  let terminalBlack = false;
 
   const makeResult = (): InferenceResult => {
     const classification = pickMostSevere(classifications);
@@ -160,11 +163,17 @@ export function runInference(s: Symptoms): InferenceResult {
     } else {
       fire(1, "Victim can walk.", "GREEN",
         "Direct victim to designated safe area.");
+      if (s.conditionChanged) {
+        fire(3, "Green victim condition worsened after initial classification.", null,
+          "Restart triage assessment from breathing status.");
+      }
     }
   }
 
+  const allowPrimaryTriage = !s.canWalk || s.walkedToWrongArea || s.conditionChanged;
+
   // Breathing path (when not walking, or to handle worsened state regardless)
-  if (!s.breathing) {
+  if (allowPrimaryTriage && !s.breathing) {
     fire(4, "Victim is not breathing — open/reposition airway.", null,
       "Open or reposition the airway.");
 
@@ -175,6 +184,7 @@ export function runInference(s: Symptoms): InferenceResult {
       } else {
         fire(6, "Adult still not breathing after airway repositioning.", "BLACK",
           "Do not prioritize resuscitation during MCI triage.");
+        terminalBlack = true;
       }
     } else {
       // Pediatric
@@ -187,13 +197,15 @@ export function runInference(s: Symptoms): InferenceResult {
         } else {
           fire(26, "Child still not breathing after rescue breaths.", "BLACK",
             "Do not prioritize resuscitation during MCI triage.");
+          terminalBlack = true;
         }
       } else {
         fire(26, "Child not breathing and no pulse.", "BLACK",
           "Do not prioritize resuscitation during MCI triage.");
+        terminalBlack = true;
       }
     }
-  } else {
+  } else if (allowPrimaryTriage) {
     // Breathing — assess respiratory rate
     if (s.victimType === "Adult") {
       if (s.respiratoryRate > 30) {
@@ -238,12 +250,20 @@ export function runInference(s: Symptoms): InferenceResult {
           notes.push("ℹ Pediatric capillary refill marked as uncertain; prioritize pulse and mental status cues.");
           supplementalRecommendations.push("If possible, reassess capillary refill when conditions allow.");
         }
-        if (s.avpu === "Unresponsive" || s.avpu === "Pain") {
+        if (s.avpu === "Unresponsive" || s.avpu === "Voice" || s.avpu === "Pain") {
           fire(27, `Pediatric AVPU = ${s.avpu}.`, "RED",
             "Immediate treatment required.");
         }
       }
     }
+  }
+
+  if (terminalBlack) {
+    if (s.isMCI) {
+      fire(33, "Mass casualty incident confirmed.", null,
+        "Prepare METHANE report for command.");
+    }
+    return makeResult();
   }
 
   // Trauma & medical (independent rules)
@@ -264,7 +284,7 @@ export function runInference(s: Symptoms): InferenceResult {
   if (s.heatStroke)
     fire(16, "Heat stroke — high body temp + altered mental status.", "RED",
       "Immediate cooling.");
-  if (s.heatExhaustion && !s.heatStroke)
+  if (s.heatExhaustion && !s.heatStroke && s.conscious && s.breathing)
     fire(17, "Heat exhaustion — conscious, breathing normally.", "YELLOW",
       "Rest, cooling, monitoring.");
   if (s.strokeFAST)
@@ -278,12 +298,17 @@ export function runInference(s: Symptoms): InferenceResult {
       "Protect victim from surrounding hazards.");
   if (s.anaphylaxis)
     fire(21, "Anaphylaxis — severe allergic reaction with airway/swelling.", "RED",
-      "Urgent medical attention; epinephrine if available.");
+      "Urgent medical attention.");
 
   // R33 METHANE (non-control path)
   if (s.isMCI) {
     fire(33, "Mass casualty incident confirmed.", null,
       "Prepare METHANE report for command.");
+  }
+
+  if (s.conditionChanged) {
+    fire(29, "Breathing, circulation, or mental status changed.", null,
+      "Re-run the full triage process.");
   }
 
   return makeResult();

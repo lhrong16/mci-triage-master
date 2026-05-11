@@ -71,7 +71,7 @@ function Index() {
           { c: "RED", label: "Immediate", d: "Life-threatening; immediate treatment.", bg: "bg-triage-red", fg: "text-triage-red-foreground" },
           { c: "YELLOW", label: "Delayed", d: "Serious but stable; delayed treatment.", bg: "bg-triage-yellow", fg: "text-triage-yellow-foreground" },
           { c: "GREEN", label: "Minor", d: "Walking wounded; minor injuries.", bg: "bg-triage-green", fg: "text-triage-green-foreground" },
-          { c: "BLACK", label: "Expectant", d: "Deceased / not breathing after airway.", bg: "bg-triage-black border border-border", fg: "text-triage-black-foreground" },
+          { c: "BLACK", label: "Deceased", d: "Not breathing after airway or rescue breaths.", bg: "bg-triage-black border border-border", fg: "text-triage-black-foreground" },
         ].map(t => (
           <Card key={t.c} className={`p-5 ${t.bg} ${t.fg}`}>
             <div className="text-xs uppercase tracking-widest opacity-80">Category</div>

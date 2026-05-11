@@ -81,14 +81,13 @@ export interface InferenceResult {
 }
 
 const SEVERITY: Record<Exclude<TriageColor, null>, number> = {
-  RED: 4, YELLOW: 3, GREEN: 2, BLACK: 1,
+  BLACK: 5, RED: 4, YELLOW: 3, GREEN: 2,
 };
 
 function pickMostSevere(colors: (TriageColor)[]): Exclude<TriageColor, null> {
   const valid = colors.filter(Boolean) as Exclude<TriageColor, null>[];
   if (valid.length === 0) return "GREEN";
-  // Black wins only if it appears (per Rule 6 / 26 — already triggered intentionally)
-  if (valid.includes("BLACK") && !valid.includes("RED")) return "BLACK";
+  // Black has highest priority (per Rule 28 — worst triage outcome)
   return valid.sort((a, b) => SEVERITY[b] - SEVERITY[a])[0];
 }
 
@@ -114,8 +113,8 @@ export function runInference(s: Symptoms): InferenceResult {
       notes.push(`Rule 28 applied — multiple categories matched, selected ${classification}.`);
     }
     const score =
+      classification === "BLACK" ? 100 :
       classification === "RED" ? 95 :
-      classification === "BLACK" ? 80 :
       classification === "YELLOW" ? 55 : 20;
     // Keep recommendations tied to final color, and also keep neutral actions
     // (e.g., consent/safety/process rules such as Rule 30 refusal recording).

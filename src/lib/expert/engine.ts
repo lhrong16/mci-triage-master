@@ -7,6 +7,7 @@ export interface Symptoms {
   sceneSafe: boolean;
   conscious: boolean;
   refusesTreatment: boolean;
+  conditionChangedSinceLastCheck: boolean;
   canWalk: boolean;
   walkedToWrongArea: boolean;
   breathing: boolean;
@@ -37,6 +38,7 @@ export const defaultSymptoms = (): Symptoms => ({
   sceneSafe: true,
   conscious: true,
   refusesTreatment: false,
+  conditionChangedSinceLastCheck: false,
   canWalk: false,
   walkedToWrongArea: false,
   breathing: true,
@@ -87,8 +89,8 @@ const SEVERITY: Record<Exclude<TriageColor, null>, number> = {
 function pickMostSevere(colors: (TriageColor)[]): Exclude<TriageColor, null> {
   const valid = colors.filter(Boolean) as Exclude<TriageColor, null>[];
   if (valid.length === 0) return "GREEN";
-  // Black wins only if it appears (per Rule 6 / 26 — already triggered intentionally)
-  if (valid.includes("BLACK") && !valid.includes("RED")) return "BLACK";
+  // Black wins whenever it appears.
+  if (valid.includes("BLACK")) return "BLACK";
   return valid.sort((a, b) => SEVERITY[b] - SEVERITY[a])[0];
 }
 
@@ -115,8 +117,8 @@ export function runInference(s: Symptoms): InferenceResult {
     }
     const score =
       classification === "RED" ? 95 :
-      classification === "BLACK" ? 80 :
-      classification === "YELLOW" ? 55 : 20;
+      classification === "BLACK" ? 10 :
+      classification === "YELLOW" ? 55 : 25;
     // Keep recommendations tied to final color, and also keep neutral actions
     // (e.g., consent/safety/process rules such as Rule 30 refusal recording).
     const finalRecommendations = Array.from(new Set(

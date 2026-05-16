@@ -15,6 +15,7 @@ export interface Symptoms {
   pediatricBreathesAfterRescue: boolean;
   hasPulse: boolean;
   respiratoryRate: number;
+  respiratoryRateUncertain: boolean;
   radialPulsePresent: boolean;
   radialPulseUncertain: boolean;
   capRefillSeconds: number;
@@ -41,13 +42,14 @@ export const defaultSymptoms = (): Symptoms => ({
   conscious: true,
   refusesTreatment: false,
   conditionChangedSinceLastCheck: false,
-  canWalk: true,
+  canWalk: false,
   walkedToWrongArea: false,
   breathing: true,
   breathesAfterAirway: false,
   pediatricBreathesAfterRescue: false,
   hasPulse: true,
   respiratoryRate: 18,
+  respiratoryRateUncertain: false,
   radialPulsePresent: true,
   radialPulseUncertain: false,
   capRefillSeconds: 2,
@@ -94,7 +96,7 @@ const SEVERITY: Record<Exclude<TriageColor, null>, number> = {
 };
 
 function pickMostSevere(colors: TriageColor[]): Exclude<TriageColor, null> {
-  const valid = colors.filter(Boolean) as Exclude<TriageColor, null>[];
+  const valid = Array.from(new Set(colors.filter(Boolean))) as Exclude<TriageColor, null>[];
   if (valid.length === 0) return "GREEN";
   return valid.sort((a, b) => SEVERITY[b] - SEVERITY[a])[0];
 }
@@ -117,7 +119,8 @@ export function runInference(s: Symptoms): InferenceResult {
 
   const makeResult = (): InferenceResult => {
     const classification = pickMostSevere(classifications);
-    if (classifications.filter(Boolean).length > 1) {
+    const uniqueClassifications = new Set(classifications.filter(Boolean));
+    if (uniqueClassifications.size > 1) {
       notes.push(`Rule 28 applied - multiple categories matched, selected ${classification}.`);
     }
     const score =
@@ -182,7 +185,7 @@ export function runInference(s: Symptoms): InferenceResult {
           "Immediate treatment required.");
       } else {
         fire(6, "Adult still not breathing after airway repositioning.", "BLACK",
-          "Do not prioritize resuscitation during MCI triage.");
+          "Tag as Black. Record the finding if possible. During MCI triage, it is best to not prioritize resuscitation if other casualties still require assessment.");
       }
     } else if (s.hasPulse) {
       fire(24, "Child not breathing but has pulse - give 5 rescue breaths.", null,
@@ -192,14 +195,18 @@ export function runInference(s: Symptoms): InferenceResult {
           "Immediate treatment required.");
       } else {
         fire(26, "Child still not breathing after rescue breaths.", "BLACK",
-          "Do not prioritize resuscitation during MCI triage.");
+          "Tag as Black. Record the finding if possible. During MCI triage, it is best to not prioritize resuscitation if other casualties still require assessment.");
       }
     } else {
       fire(24, "Child not breathing and pulse absent.", "BLACK",
-        "Do not prioritize resuscitation during MCI triage.");
+        "Tag as Black. Record the finding if possible. During MCI triage, it is best to not prioritize resuscitation if other casualties still require assessment.");
     }
   } else if (needsPrimaryAssessment && s.victimType === "Adult") {
-    if (s.respiratoryRate > 30) {
+    if (s.respiratoryRateUncertain) {
+      notes.push("Respiratory rate marked as uncertain; continue with perfusion and mental status checks.");
+      supplementalRecommendations.push("If possible, count respiratory rate again when conditions allow.");
+      evaluatePerfusionAndAdultMentalStatus();
+    } else if (s.respiratoryRate > 30) {
       fire(7, `Adult RR ${s.respiratoryRate} > 30/min.`, "RED",
         "Immediate treatment required.");
     } else {
@@ -207,7 +214,11 @@ export function runInference(s: Symptoms): InferenceResult {
       evaluatePerfusionAndAdultMentalStatus();
     }
   } else if (needsPrimaryAssessment) {
-    if (s.respiratoryRate < 15 || s.respiratoryRate > 45) {
+    if (s.respiratoryRateUncertain) {
+      notes.push("Pediatric respiratory rate marked as uncertain; continue with perfusion and AVPU checks.");
+      supplementalRecommendations.push("If possible, count pediatric respiratory rate again when conditions allow.");
+      evaluatePediatricPerfusionAndAvpu();
+    } else if (s.respiratoryRate < 15 || s.respiratoryRate > 45) {
       fire(22, `Pediatric RR ${s.respiratoryRate} outside 15-45/min.`, "RED",
         "Immediate treatment required.");
     } else {
@@ -216,13 +227,15 @@ export function runInference(s: Symptoms): InferenceResult {
     }
   }
 
-  if (s.severeBleeding)
+  const blackTerminal = classifications.includes("BLACK");
+
+  if (!blackTerminal && s.severeBleeding)
     fire(13, "Severe bleeding present.", "RED",
       "Apply direct pressure or tourniquet if appropriate and trained.");
-  if (s.openFracture)
+  if (!blackTerminal && s.openFracture)
     fire(14, "Open fracture or visible bone.", "YELLOW",
       "Cover wound and splint injured area.");
-  if (s.burns) {
+  if (!blackTerminal && s.burns) {
     if (s.burnAirwayInvolvement)
       fire(15, "Burns with airway involvement or breathing difficulty.", "RED",
         "Immediate airway management.");
@@ -230,28 +243,33 @@ export function runInference(s: Symptoms): InferenceResult {
       fire(15, "Serious burns, breathing stable.", "YELLOW",
         "Cool burn, cover, monitor.");
   }
-  if (s.heatStroke)
+  if (!blackTerminal && s.heatStroke)
     fire(16, "Heat stroke - high body temperature with altered mental status.", "RED",
       "Immediate cooling.");
-  if (s.heatExhaustion && !s.heatStroke)
+  if (!blackTerminal && s.heatExhaustion && !s.heatStroke)
     fire(17, "Heat exhaustion - conscious and breathing normally.", "YELLOW",
       "Rest, cooling, monitoring.");
-  if (s.strokeFAST)
+  if (!blackTerminal && s.strokeFAST)
     fire(18, "Stroke FAST signs: face, arm, or speech.", "RED",
       "Urgent transport and medical attention.");
-  if (s.chestPainRadiates)
+  if (!blackTerminal && s.chestPainRadiates)
     fire(19, "Chest pain radiating to arm, jaw, back, or shoulder.", "RED",
       "Urgent medical attention - possible heart attack.");
-  if (s.activeSeizure)
+  if (!blackTerminal && s.activeSeizure)
     fire(20, "Active seizure activity.", "RED",
       "Protect victim from surrounding hazards.");
-  if (s.anaphylaxis)
+  if (!blackTerminal && s.anaphylaxis)
     fire(21, "Anaphylaxis - severe allergic reaction with airway, swelling, or collapse.", "RED",
       "Urgent medical attention; epinephrine if available.");
 
-  if (s.otherPatientsWaiting && classifications.includes("BLACK")) {
-    fire(34, "Victim meets Black criteria while other casualties still need assessment.", "BLACK",
-      "Tag Black, record the finding, and continue assessing other waiting casualties.");
+  if (blackTerminal) {
+    if (s.otherPatientsWaiting) {
+      fire(34, "Victim meets Black criteria while other casualties still need assessment.", "BLACK",
+        "Classify as Black, record the finding if possible, and continue assessing other patients.");
+    } else {
+      fire(34, "Victim meets Black criteria and no other casualties are waiting to be assessed.", "BLACK",
+        "Classify as Black and follow local emergency protocol or responder instructions.");
+    }
   }
 
   if (s.isMCI) {

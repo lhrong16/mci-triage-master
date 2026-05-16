@@ -130,10 +130,10 @@ Rule 26: Pediatric Still Not Breathing Rule
 IF the child remains not breathing after rescue breaths, THEN classify as Black.
 
 Rule 27: Pediatric AVPU Rule  
-IF child AVPU is Voice, Pain, or Unresponsive, THEN classify as Red.
+IF child AVPU is Unresponsive, or the child shows an inappropriate response to Voice or Pain, THEN classify as Red.
 
 Rule 28: Conflict Resolution Rule  
-IF more than one triage category is satisfied, THEN select the most severe category: Black > Red > Yellow > Green. Black is assigned only through adult no-breathing-after-airway or pediatric no-breathing-after-rescue-breath criteria.
+IF more than one triage category is satisfied, THEN select the most serious valid category. Black is assigned only when confirmed by Rule 6 or Rule 26. If Black is not triggered, conflict resolution uses Red > Yellow > Green.
 
 Rule 29: Re-triage Rule  
 IF a previously classified victim has breathing, circulation, or mental status changes, THEN re-run the full triage process and compare against the previous local record.
@@ -151,7 +151,7 @@ Rule 33: METHANE Reporting Rule
 IF a mass casualty incident is confirmed, THEN prepare METHANE: Major incident, Exact location, Type, Hazards, Access, Number/type/severity of casualties, Emergency services.
 
 Rule 34: Black Tag Multiple Casualty Priority Rule  
-IF the victim meets Black criteria and other patients or extra people still need assessment, THEN tag Black, record the finding, and continue assessing other casualties.
+IF the victim meets Black tag criteria and other patients or casualties still need to be assessed, THEN classify the victim as Black, record the finding if possible, and continue assessing other patients. ELSE IF the victim meets Black tag criteria and no other patients or casualties are waiting to be assessed, THEN classify the victim as Black and follow local emergency protocol or responder instructions.
 
 ## Quick Start
 

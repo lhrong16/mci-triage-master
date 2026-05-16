@@ -31,6 +31,16 @@ function downloadFile(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  })[char] as string);
+}
+
 function pdfEscape(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
@@ -91,6 +101,7 @@ function assessmentText(x: SavedAssessment) {
     `Victim type: ${x.symptoms.victimType}`,
     `Classification: ${x.result.classification}`,
     `Severity score: ${x.result.severityScore}`,
+    `Priority explanation: ${priorityExplanation(x.result.classification)}`,
     "",
     "Matched rules:",
     ...x.result.fired.map((f) => `R${f.id} - ${f.title}: ${f.reason}`),
@@ -114,6 +125,78 @@ H - Hazards: ${x.hazards}
 A - Access Routes: ${x.access}
 N - Number/Severity of Casualties: ${x.casualties}
 E - Emergency Services Required/Present: ${x.services}`;
+}
+
+function methanePrintField(label: string, value: string, textarea = false) {
+  const tag = textarea ? "div" : "div";
+  const minHeight = textarea ? "48px" : "28px";
+  return `<label>
+    <span>${escapeHtml(label)}</span>
+    <${tag} class="field" style="min-height:${minHeight}">${escapeHtml(value)}</${tag}>
+  </label>`;
+}
+
+function openMethanePrintView(x: MethaneReport) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+
+  win.document.write(`<!doctype html>
+    <html>
+      <head>
+        <title>METHANE Report - MCI Expert System</title>
+        <style>
+          *{box-sizing:border-box}
+          body{font-family:Arial,sans-serif;margin:0;background:#fff;color:#1f2937;font-size:12px}
+          .page{width:794px;min-height:1123px;margin:0 auto;padding:28px 34px}
+          .top{border:1px solid #9ca3af;padding:12px 16px;display:flex;justify-content:space-between;color:#374151;font-size:11px}
+          .eyebrow{margin-top:28px;color:#6b7280;text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:700}
+          h1{font-size:22px;margin:10px 0 8px;color:#9ca3af}
+          .note{margin:0 0 22px;color:#374151}
+          .form{border:1px solid #9ca3af;border-radius:12px;padding:18px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+          label{display:block;margin-bottom:14px}
+          label span{display:block;margin-bottom:6px;color:#4b5563;text-transform:uppercase;font-size:11px;font-weight:700}
+          .field{border:1px solid #374151;border-radius:8px;padding:8px 10px;color:#111827;white-space:pre-wrap;line-height:1.35}
+          .footer{position:fixed;left:34px;right:34px;bottom:18px;display:flex;justify-content:space-between;font-size:10px;color:#111827}
+          @media print{body{background:#fff}.page{margin:0}.footer{position:fixed}}
+        </style>
+      </head>
+      <body>
+        <main class="page">
+          <div class="top">
+            <div>${escapeHtml(new Date(x.timestamp).toLocaleString())}</div>
+            <strong>METHANE Report - MCI Expert System</strong>
+            <div>Emergency Operations</div>
+          </div>
+          <div class="eyebrow">Rule 33 - Incident Reporting</div>
+          <h1>METHANE Emergency Report</h1>
+          <p class="note">METHANE is for incident reporting. It does not change the victim's triage category.</p>
+          <section class="form">
+            ${methanePrintField("M - Major Incident", x.major)}
+            ${methanePrintField("E - Exact Location", x.location)}
+            ${methanePrintField("T - Type of Incident", x.type)}
+            ${methanePrintField("H - Hazards Present", x.hazards, true)}
+            ${methanePrintField("A - Access Routes", x.access, true)}
+            ${methanePrintField("N - Casualties (Number/Severity)", x.casualties, true)}
+            ${methanePrintField("E - Emergency Services Required/Present", x.services, true)}
+          </section>
+        </main>
+        <div class="footer"><span>Incident record</span><span>1/1</span></div>
+        <script>
+          window.onload = () => {
+            window.focus();
+            setTimeout(() => window.print(), 250);
+          };
+        </script>
+      </body>
+    </html>`);
+  win.document.close();
+}
+
+function priorityExplanation(classification: string) {
+  if (classification === "RED") return "Highest treatment priority.";
+  if (classification === "YELLOW") return "Delayed treatment priority.";
+  if (classification === "GREEN") return "Minor priority / walking wounded.";
+  return "Terminal Black category after confirmed non-breathing rule; not a treatment-priority override.";
 }
 
 function Admin() {
@@ -264,7 +347,7 @@ function Admin() {
                     <Button size="sm" variant="outline" onClick={() => downloadFile(`methane-${x.id}.txt`, reportText(x), "text/plain")}>
                       <Download className="h-4 w-4 mr-1" /> Export
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => downloadPdf(`methane-${x.id}.pdf`, reportText(x))}>
+                    <Button size="sm" variant="outline" onClick={() => openMethanePrintView(x)}>
                       <FileText className="h-4 w-4 mr-1" /> PDF
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => removeReport(x.id)}>

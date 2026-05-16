@@ -43,21 +43,24 @@ function Triage() {
       if (patch.victimType === "Adult") {
         next.pediatricBreathesAfterRescue = false;
         next.respiratoryRate = next.breathing ? adultDefaultRate : next.respiratoryRate;
+        next.respiratoryRateUncertain = false;
       }
       if (patch.victimType === "Pediatric") {
         next.breathesAfterAirway = false;
         next.respiratoryRate = next.breathing ? pediatricDefaultRate : next.respiratoryRate;
+        next.respiratoryRateUncertain = false;
       }
 
       if (patch.conscious === true) {
-        next.canWalk = true;
         next.breathing = true;
         next.hasPulse = true;
         next.followsCommands = true;
         next.avpu = "Alert";
         next.respiratoryRate = next.victimType === "Pediatric" ? pediatricDefaultRate : adultDefaultRate;
+        next.respiratoryRateUncertain = false;
       }
       if (patch.conscious === false) {
+        next.canWalk = false;
         next.walkedToWrongArea = false;
         next.followsCommands = false;
         next.avpu = "Unresponsive";
@@ -67,15 +70,18 @@ function Triage() {
         next.breathesAfterAirway = false;
         next.pediatricBreathesAfterRescue = false;
         next.respiratoryRate = next.victimType === "Pediatric" ? pediatricDefaultRate : adultDefaultRate;
+        next.respiratoryRateUncertain = false;
       }
       if (patch.breathing === false) {
         next.respiratoryRate = 0;
+        next.respiratoryRateUncertain = false;
       }
 
       if (patch.breathesAfterAirway === true) {
         next.breathing = false;
         next.pediatricBreathesAfterRescue = false;
         next.respiratoryRate = adultDefaultRate;
+        next.respiratoryRateUncertain = false;
       }
       if (patch.breathesAfterAirway === false && !next.breathing && next.victimType === "Adult") {
         next.respiratoryRate = 0;
@@ -86,6 +92,7 @@ function Triage() {
         next.breathesAfterAirway = false;
         next.hasPulse = true;
         next.respiratoryRate = pediatricDefaultRate;
+        next.respiratoryRateUncertain = false;
       }
       if (patch.pediatricBreathesAfterRescue === false && !next.breathing && next.victimType === "Pediatric") {
         next.respiratoryRate = 0;
@@ -93,12 +100,25 @@ function Triage() {
 
       if (patch.radialPulseUncertain === true) next.radialPulsePresent = true;
       if (patch.capRefillUncertain === true) next.capRefillSeconds = 2;
+      if (patch.respiratoryRateUncertain === true) next.respiratoryRate = next.breathing ? next.respiratoryRate : 0;
 
       return next;
     });
   };
 
   const update = <K extends keyof Symptoms>(k: K, v: Symptoms[K]) => patchSymptoms({ [k]: v } as Partial<Symptoms>);
+
+  const goNext = () => {
+    if (!s.sceneSafe) {
+      submit();
+      return;
+    }
+
+    if (step === 1 && s.breathing && !s.respiratoryRateUncertain) {
+      patchSymptoms({ respiratoryRate: s.victimType === "Pediatric" ? pediatricDefaultRate : adultDefaultRate });
+    }
+    setStep((current) => current + 1);
+  };
 
   const loadLatestForRetriage = () => {
     const latest = getLatest();
@@ -118,12 +138,12 @@ function Triage() {
           <div className="p-3 rounded-lg border border-border bg-card/40">
             <Label className="text-sm">Victim type</Label>
             <RadioGroup value={s.victimType} onValueChange={(v: any) => update("victimType", v)} className="flex gap-3 mt-2">
-              <label className="flex items-center gap-2"><RadioGroupItem value="Adult" /> Adult</label>
-              <label className="flex items-center gap-2"><RadioGroupItem value="Pediatric" /> Pediatric</label>
+              <label className="flex items-center gap-2 cursor-pointer" onClick={() => update("victimType", "Adult")}><RadioGroupItem value="Adult" /> Adult</label>
+              <label className="flex items-center gap-2 cursor-pointer" onClick={() => update("victimType", "Pediatric")}><RadioGroupItem value="Pediatric" /> Pediatric</label>
             </RadioGroup>
           </div>
           <Toggle label="Scene is safe" hint="Rule 32 - do not enter unsafe areas." value={s.sceneSafe} onChange={(v: boolean) => update("sceneSafe", v)} />
-          <Toggle label="Victim conscious" hint="When on, Can walk, Breathing, and Has pulse are set on." value={s.conscious} onChange={(v: boolean) => update("conscious", v)} />
+          <Toggle label="Victim conscious" hint="When on, Breathing, Has pulse, and Follows commands are set on. Can walk remains a separate observation." value={s.conscious} onChange={(v: boolean) => update("conscious", v)} />
           <div className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border bg-card/40">
             <div>
               <Label className="text-sm font-medium">Condition changed since last check</Label>
@@ -149,7 +169,7 @@ function Triage() {
             <div className="text-lg font-semibold">{s.victimType === "Adult" ? "Adult START airway path" : "Pediatric JumpSTART rescue-breath path"}</div>
           </div>
           <div className="grid md:grid-cols-2 gap-3">
-            <Toggle label="Can walk" value={s.canWalk} onChange={(v: boolean) => update("canWalk", v)} />
+            <Toggle label="Can walk" hint="Use only when the victim is observed walking or able to move to the safe area." value={s.canWalk} onChange={(v: boolean) => update("canWalk", v)} />
             <Toggle label="Walked to wrong area / confused" hint="Only applies if the victim is conscious and able to move." value={s.walkedToWrongArea} disabled={!s.conscious} onChange={(v: boolean) => update("walkedToWrongArea", v)} />
             <Toggle label="Breathing now" value={s.breathing} onChange={(v: boolean) => update("breathing", v)} danger={!s.breathing} />
             {s.victimType === "Adult" ? (
@@ -172,11 +192,30 @@ function Triage() {
           <div className="p-4 rounded-lg border border-border bg-card/40">
             <div className="flex items-center justify-between">
               <Label className="text-sm">Respiratory rate (breaths/min)</Label>
-              <span className="font-mono text-2xl text-triage-red">{s.respiratoryRate}</span>
+              <span className="font-mono text-2xl text-triage-red">{s.respiratoryRateUncertain ? "Unknown" : s.respiratoryRate}</span>
             </div>
-            <Slider min={0} max={60} step={1} value={[s.respiratoryRate]} onValueChange={([v]) => update("respiratoryRate", v)} className="mt-3" />
+            <Slider
+              min={0}
+              max={60}
+              step={1}
+              disabled={s.respiratoryRateUncertain}
+              value={[s.respiratoryRate]}
+              onValueChange={([v]) => patchSymptoms({ respiratoryRate: v, respiratoryRateUncertain: false })}
+              className="mt-3"
+            />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>0</span><span>Adult limit 30</span><span>Pediatric 15-45</span><span>60</span>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Unable to count breaths accurately? Mark respiratory rate as unknown.</p>
+              <Button
+                type="button"
+                size="sm"
+                variant={s.respiratoryRateUncertain ? "default" : "outline"}
+                onClick={() => update("respiratoryRateUncertain", !s.respiratoryRateUncertain)}
+              >
+                I'm not sure
+              </Button>
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-3">
@@ -222,15 +261,15 @@ function Triage() {
                   <label key={o} className="flex items-center gap-2"><RadioGroupItem value={o} /> {o}</label>
                 ))}
               </RadioGroup>
-              <p className="text-xs text-muted-foreground mt-2">For pediatric victims, Voice, Pain, or Unresponsive triggers Red.</p>
+              <p className="text-xs text-muted-foreground mt-2">For pediatric victims, Unresponsive or inappropriate Voice/Pain response triggers Red.</p>
             </div>
           </div>
           <div className="grid md:grid-cols-4 gap-3">
             {[
-              ["Alert", "Awake, looking around, can answer or respond normally."],
-              ["Voice", "Does not seem fully alert, but responds when spoken to."],
-              ["Pain", "Does not respond to voice, but moves or pulls away when pinched or given a painful stimulus."],
-              ["Unresponsive", "No response to voice or pain; cannot talk, move purposefully, or follow commands."],
+              ["Alert", "The victim is awake, aware, and responds normally."],
+              ["Voice", "The victim is not fully alert but responds when spoken to."],
+              ["Pain", "The victim does not respond to voice, but moves, pulls away, or reacts when a painful stimulus is applied, such as a pinch."],
+              ["Unresponsive", "The victim does not respond to voice or pain."],
             ].map(([term, meaning]) => (
               <div key={term} className="rounded-lg border border-border bg-card/40 p-3">
                 <div className="font-semibold text-sm">{term}</div>
@@ -291,7 +330,7 @@ function Triage() {
       <div className="flex items-center justify-between">
         <Button variant="outline" disabled={step === 0} onClick={() => setStep((current) => current - 1)}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
         {step < steps.length - 1 ? (
-          <Button onClick={() => (!s.sceneSafe ? submit() : setStep((current) => current + 1))} className="bg-[var(--gradient-emergency)]">
+          <Button onClick={goNext} className="bg-[var(--gradient-emergency)]">
             Next <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (

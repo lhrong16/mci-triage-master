@@ -63,10 +63,10 @@ function Index() {
 
       <section className="grid md:grid-cols-4 gap-4">
         {[
-          { c: "RED", label: "Immediate", d: "Life-threatening or unstable. Treat and transport first.", bg: "bg-triage-red", fg: "text-triage-red-foreground" },
-          { c: "YELLOW", label: "Delayed", d: "Serious injury but currently stable enough to wait.", bg: "bg-triage-yellow", fg: "text-triage-yellow-foreground" },
-          { c: "GREEN", label: "Minor", d: "Walking wounded. Move to a safe designated area.", bg: "bg-triage-green", fg: "text-triage-green-foreground" },
-          { c: "BLACK", label: "Deceased / Expectant", d: "No breathing after required airway or rescue-breath step.", bg: "bg-triage-black border border-border", fg: "text-triage-black-foreground" },
+          { c: "RED", label: "Immediate", d: "Life-threatening condition requiring urgent treatment.", bg: "bg-triage-red", fg: "text-triage-red-foreground" },
+          { c: "YELLOW", label: "Delayed", d: "Serious condition but not immediately life-threatening.", bg: "bg-triage-yellow", fg: "text-triage-yellow-foreground" },
+          { c: "GREEN", label: "Minor", d: "Walking wounded who can move to a safe area.", bg: "bg-triage-green", fg: "text-triage-green-foreground" },
+          { c: "BLACK", label: "Deceased / Expectant", d: "Not breathing after the required airway or rescue-breath step.", bg: "bg-triage-black border border-border", fg: "text-triage-black-foreground" },
         ].map((t) => (
           <Card key={t.c} className={`p-5 ${t.bg} ${t.fg}`}>
             <div className="text-xs uppercase tracking-widest opacity-80">Category</div>
@@ -79,11 +79,14 @@ function Index() {
 
       <section className="glass rounded-lg p-5">
         <h2 className="font-semibold">Severity Score Meaning</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Severity score shows how urgent or critical the classification is for triage decision-making. Black is a terminal category, not a treatment-priority override.
+        </p>
         <div className="grid md:grid-cols-4 gap-3 mt-3 text-sm">
-          <div><span className="font-mono font-bold">100</span> Black: not breathing after the required intervention.</div>
-          <div><span className="font-mono font-bold">95</span> Red: immediate life-threatening priority.</div>
-          <div><span className="font-mono font-bold">55</span> Yellow: delayed but needs reassessment.</div>
-          <div><span className="font-mono font-bold">25</span> Green: minor or walking wounded.</div>
+          <div><span className="font-mono font-bold">95</span> Red: highest treatment priority.</div>
+          <div><span className="font-mono font-bold">55</span> Yellow: delayed treatment priority.</div>
+          <div><span className="font-mono font-bold">25</span> Green: minor priority.</div>
+          <div><span className="font-mono font-bold">100</span> Black: terminal category after confirmed non-breathing rule.</div>
         </div>
       </section>
 
@@ -91,7 +94,7 @@ function Index() {
         <Card className="glass p-6">
           <ShieldAlert className="h-6 w-6 text-triage-red mb-2" />
           <h3 className="font-semibold">Forward-Chaining Engine</h3>
-          <p className="text-sm text-muted-foreground mt-1">Evaluates symptoms sequentially with conflict resolution (Black &gt; Red &gt; Yellow &gt; Green).</p>
+          <p className="text-sm text-muted-foreground mt-1">Black is terminal only by Rule 6 or Rule 26. Other conflicts resolve as Red &gt; Yellow &gt; Green.</p>
         </Card>
         <Card className="glass p-6">
           <Stethoscope className="h-6 w-6 text-triage-yellow mb-2" />

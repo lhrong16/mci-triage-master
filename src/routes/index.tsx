@@ -82,11 +82,24 @@ function Index() {
         <p className="text-sm text-muted-foreground mt-1">
           Severity score shows how urgent or critical the classification is for triage decision-making. Black is a terminal category, not a treatment-priority override.
         </p>
-        <div className="grid md:grid-cols-4 gap-3 mt-3 text-sm">
-          <div><span className="font-mono font-bold">95</span> Red: highest treatment priority.</div>
-          <div><span className="font-mono font-bold">55</span> Yellow: delayed treatment priority.</div>
-          <div><span className="font-mono font-bold">25</span> Green: minor priority.</div>
-          <div><span className="font-mono font-bold">100</span> Black: terminal category after confirmed non-breathing rule.</div>
+
+        <div className="grid md:grid-cols-4 gap-4 mt-4">
+          {[
+            { score: 95, title: "Red", desc: "Highest treatment priority.", bg: "bg-triage-red/10", badgeFg: "text-triage-red", titleColor: "text-triage-red" },
+            { score: 55, title: "Yellow", desc: "Delayed treatment priority.", bg: "bg-triage-yellow/10", badgeFg: "text-triage-yellow", titleColor: "text-triage-yellow" },
+            { score: 25, title: "Green", desc: "Minor priority.", bg: "bg-triage-green/10", badgeFg: "text-triage-green", titleColor: "text-triage-green" },
+            { score: 10, title: "Black", desc: "Terminal after confirmed non-breathing rule.", bg: "bg-white border border-border", badgeFg: "text-triage-black", titleColor: "text-white" },
+          ].map((s) => (
+            <Card key={s.title} className="p-4 flex items-center gap-4">
+              <div className={`flex-none h-14 w-14 rounded-lg grid place-items-center ${s.bg} ${s.badgeFg} font-mono font-extrabold text-2xl tabular-nums`}>{s.score}</div>
+              <div className="min-w-0">
+                <div className="flex flex-col">
+                  <div className={`text-lg font-semibold ${s.titleColor}`}>{s.title}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{s.desc}</div>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
 

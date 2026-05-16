@@ -124,7 +124,7 @@ export function runInference(s: Symptoms): InferenceResult {
       notes.push(`Rule 28 applied - multiple categories matched, selected ${classification}.`);
     }
     const score =
-      classification === "BLACK" ? 100 :
+      classification === "BLACK" ? 10 :
       classification === "RED" ? 95 :
       classification === "YELLOW" ? 55 : 25;
     const finalRecommendations = Array.from(new Set(

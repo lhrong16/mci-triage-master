@@ -137,10 +137,19 @@ function methanePrintField(label: string, value: string, textarea = false) {
 }
 
 function openMethanePrintView(x: MethaneReport) {
-  const win = window.open("", "_blank");
-  if (!win) return;
+  const output = `=== METHANE REPORT ===
+Time: ${new Date(x.timestamp).toUTCString()}
 
-  win.document.write(`<!doctype html>
+M - Major Incident: ${x.major}
+E - Exact Location: ${x.location}
+T - Type of Incident: ${x.type}
+H - Hazards: ${x.hazards}
+A - Access Routes: ${x.access}
+N - Number/Severity of Casualties: ${x.casualties}
+E - Emergency Services Required/Present: ${x.services}
+======================`;
+
+  const html = `<!doctype html>
     <html>
       <head>
         <title>METHANE Report - MCI Expert System</title>
@@ -153,6 +162,11 @@ function openMethanePrintView(x: MethaneReport) {
           h1{font-size:22px;margin:10px 0 8px;color:#9ca3af}
           .note{margin:0 0 22px;color:#374151}
           .form{border:1px solid #9ca3af;border-radius:12px;padding:18px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+          .output{margin-top:28px;border:1px solid #9ca3af;border-radius:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);overflow:hidden}
+          .output-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #9ca3af;padding:12px 16px;color:#ff2d45;font-weight:700}
+          .output-actions{display:flex;gap:8px;color:#9ca3af;font-size:11px}
+          .fake-button{border:1px solid #9ca3af;border-radius:8px;padding:6px 14px;color:#6b7280}
+          pre{margin:0;padding:18px;font-size:12px;line-height:1.55;color:#6b7280;white-space:pre-wrap}
           label{display:block;margin-bottom:14px}
           label span{display:block;margin-bottom:6px;color:#4b5563;text-transform:uppercase;font-size:11px;font-weight:700}
           .field{border:1px solid #374151;border-radius:8px;padding:8px 10px;color:#111827;white-space:pre-wrap;line-height:1.35}
@@ -179,6 +193,17 @@ function openMethanePrintView(x: MethaneReport) {
             ${methanePrintField("N - Casualties (Number/Severity)", x.casualties, true)}
             ${methanePrintField("E - Emergency Services Required/Present", x.services, true)}
           </section>
+          <section class="output">
+            <div class="output-head">
+              <span>METHANE OUTPUT</span>
+              <span class="output-actions">
+                <span class="fake-button">Copy</span>
+                <span class="fake-button">Print</span>
+                <span class="fake-button">Save</span>
+              </span>
+            </div>
+            <pre>${escapeHtml(output)}</pre>
+          </section>
         </main>
         <div class="footer"><span>Incident record</span><span>1/1</span></div>
         <script>
@@ -188,8 +213,11 @@ function openMethanePrintView(x: MethaneReport) {
           };
         </script>
       </body>
-    </html>`);
-  win.document.close();
+    </html>`;
+
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  const win = window.open(url, "_blank");
+  if (win) setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 function priorityExplanation(classification: string) {

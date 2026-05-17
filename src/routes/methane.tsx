@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { saveReport } from "@/lib/store";
+import { formatMalaysiaTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { Copy, FileWarning, Printer, Save } from "lucide-react";
 
@@ -28,7 +29,7 @@ function Methane() {
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   const report = `=== METHANE REPORT ===
-Time: ${new Date().toUTCString()}
+Time: ${formatMalaysiaTime(new Date())}
 
 M - Major Incident: ${f.major}
 E - Exact Location: ${f.location}

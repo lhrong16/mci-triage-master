@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { deleteAssessment, deleteReport, listAssessments, listReports, type MethaneReport, type SavedAssessment } from "@/lib/store";
+import { formatMalaysiaTime } from "@/lib/utils";
 import { Database, Download, Eye, FileText, FileWarning, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -97,7 +98,7 @@ function downloadPdf(filename: string, text: string) {
 function assessmentText(x: SavedAssessment) {
   return [
     "TRIAGE ASSESSMENT RECORD",
-    `Time: ${new Date(x.timestamp).toLocaleString()}`,
+    `Time: ${formatMalaysiaTime(x.timestamp)}`,
     `Victim type: ${x.symptoms.victimType}`,
     `Classification: ${x.result.classification}`,
     `Severity score: ${x.result.severityScore}`,
@@ -116,7 +117,7 @@ function assessmentText(x: SavedAssessment) {
 
 function reportText(x: MethaneReport) {
   return `METHANE REPORT
-Time: ${new Date(x.timestamp).toLocaleString()}
+Time: ${formatMalaysiaTime(x.timestamp)}
 
 M - Major Incident: ${x.major}
 E - Exact Location: ${x.location}
@@ -138,7 +139,7 @@ function methanePrintField(label: string, value: string, textarea = false) {
 
 function openMethanePrintView(x: MethaneReport) {
   const output = `=== METHANE REPORT ===
-Time: ${new Date(x.timestamp).toUTCString()}
+Time: ${formatMalaysiaTime(x.timestamp)}
 
 M - Major Incident: ${x.major}
 E - Exact Location: ${x.location}
@@ -177,7 +178,7 @@ E - Emergency Services Required/Present: ${x.services}
       <body>
         <main class="page">
           <div class="top">
-            <div>${escapeHtml(new Date(x.timestamp).toLocaleString())}</div>
+            <div>${escapeHtml(formatMalaysiaTime(new Date(x.timestamp)))}</div>
             <strong>METHANE Report - MCI Expert System</strong>
             <div>Emergency Operations</div>
           </div>
@@ -309,7 +310,7 @@ function Admin() {
                 <div className="py-3 flex items-center gap-3 flex-wrap">
                   <Badge className={COLOR[x.result.classification]}>{x.result.classification}</Badge>
                   <div className="text-sm">{x.symptoms.victimType}</div>
-                  <div className="text-xs text-muted-foreground">{new Date(x.timestamp).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">{formatMalaysiaTime(x.timestamp)}</div>
                   <div className="text-xs text-muted-foreground ml-auto">{x.result.fired.length} rules fired</div>
                   <Button size="sm" variant="outline" onClick={() => setSelectedAssessmentId(isSelected ? null : x.id)}>
                     <Eye className="h-4 w-4 mr-1" /> {isSelected ? "Hide" : "View"}
@@ -366,7 +367,7 @@ function Admin() {
                 <div className="py-3 flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <div className="text-sm font-semibold">{x.major || "M - Major Incident"}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(x.timestamp).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground">{formatMalaysiaTime(x.timestamp)}</div>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <Button size="sm" variant="outline" onClick={() => setSelectedReportId(isSelected ? null : x.id)}>
